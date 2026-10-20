@@ -615,14 +615,14 @@ function extractBotanicalSignals(imageData) {
         hispaScrapes++;
       }
 
-      // 2. Brown Spot: discrete dark reddish-brown circular spots (R > G > B with distinct contrast)
-      const isBrown = (r > g * 1.15 && r > b * 1.25 && r > 55 && r < 175 && g > 30 && sat > 40);
+      // 2. Brown Spot: discrete dark reddish-brown circular spots (R > G > B with distinct contrast, dark necrotic value)
+      const isBrown = (r > g * 1.18 && r > b * 1.28 && r > 45 && r < 165 && val < 165 && g > 25 && sat > 38);
       if (isBrown) {
         brownSpots++;
       }
 
       // 3. Healthy: pure chlorophyll green
-      if (g > b * 1.10 && g >= r * 0.90 && (2 * g - r - b > 15) && sat >= 30) {
+      if (g > b * 1.05 && g >= r * 0.85 && (2 * g - r - b > 10) && sat >= 20) {
         healthyGreen++;
       }
     }
@@ -646,26 +646,39 @@ function calibrateUncertainLogits(logitsIn, topImgInfo, bottomImgInfo = null, vi
   const sigTop = extractBotanicalSignals(topImgInfo.imageData);
   let sc = sigTop.scrapeRatio;
   let br = sigTop.brownRatio;
+  let gr = sigTop.greenRatio;
 
   if (bottomImgInfo) {
     const sigBot = extractBotanicalSignals(bottomImgInfo.imageData);
     sc = Math.max(sc, sigBot.scrapeRatio);
     br = Math.max(br, sigBot.brownRatio);
+    gr = Math.max(gr, sigBot.greenRatio);
+  }
+
+  // 1. Healthy Paddy calibration:
+  // If the leaf blade is dominated by vibrant chlorophyll green with no heavy necrotic lesions or feeding scrapes
+  const isHealthyDominant = (gr > 0.28 && (br < 0.035 || gr > br * 7.0) && (sc < 0.08 || gr > sc * 4.5));
+  if (isHealthyDominant) {
+    const maxOther = Math.max(logits[bsIdx], logits[hIdx], logits[lbIdx]);
+    if (logits[hpIdx] < maxOther + 1.4) {
+      logits[hpIdx] = maxOther + 1.4;
+      logits[bsIdx] -= 0.6;
+    }
   }
 
   // Margin between Brown Spot (0) and Hispa (2): positive if Brown Spot > Hispa
   const marginBsH = logits[bsIdx] - logits[hIdx];
 
-  // ONLY calibrate if Brown Spot and Hispa are in a close contest (margin within ±1.8)
-  if (Math.abs(marginBsH) < 1.8) {
-    // 1. True Hispa: prominent longitudinal feeding scrapes and lack of discrete circular brown spots
+  // ONLY calibrate Brown Spot vs Hispa if NOT healthy dominant and in a close contest (margin within ±1.8)
+  if (!isHealthyDominant && Math.abs(marginBsH) < 1.8) {
+    // 2. True Hispa: prominent longitudinal feeding scrapes and lack of discrete circular brown spots
     if ((sc > 0.10 && br < 0.006) || (sc > 0.15 && sc > br * 3.0)) {
       const boost = 1.5 * Math.min(sc / 0.18, 2.0);
       logits[hIdx] += boost;
       logits[bsIdx] -= boost * 0.5;
     }
-    // 2. True Brown Spot: discrete circular brown spots and absence of prominent scrape trails
-    else if (br > 0.010 && sc < 0.08) {
+    // 3. True Brown Spot: discrete circular brown spots, absence of prominent scrape trails, AND leaf is not healthy green
+    else if (br > 0.015 && sc < 0.08 && gr < 0.45) {
       const boost = 1.5 * Math.min(br / 0.02, 2.0);
       logits[bsIdx] += boost;
       logits[hIdx] -= boost * 0.5;
