@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaddyScan AI • Dual-View Paddy Leaf Disease Diagnostic System</title>
+    <meta name="description"
+        content="AI-Powered Paddy Leaf Disease Detection utilizing Dual-View EfficientNet-B0 Siamese Neural Network for Front (T1) and Back (D1) leaf analysis.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- Bootstrap 5 CSS & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="bg-light">
+
+    <div class="app-layout">
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="app-sidebar" id="appSidebar">
+            <div class="sidebar-header">
+                <div class="brand-container">
+                    <div class="brand-icon">
+                        <i class="bi bi-flower1"></i>
+                    </div>
+                    <div class="brand-text">
+                        <span class="brand-title">GAN-Enhanced</span>
+                        <span class="brand-subtitle"
+                            title="Paddy Leaf Disease Detection Through Dual-View Imaging">Paddy Leaf Disease Detection
+                            Through Dual-View Imaging</span>
+                    </div>
+                </div>
+                <button class="btn btn-close-sidebar d-lg-none" id="closeSidebarBtn" aria-label="Close Sidebar">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-label">DIAGNOSTIC MODES</div>
+                <button class="nav-item-btn active" data-target="front-view-section">
+                    <i class="bi bi-image"></i>
+                    <span>Front-View Analysis</span>
+                    <span class="nav-badge">T1</span>
+                </button>
+                <button class="nav-item-btn" data-target="dual-view-section">
+                    <i class="bi bi-layers-half"></i>
+                    <span>Dual-View Analysis</span>
+                    <span class="nav-badge highlight">T1+B1</span>
+                </button>
+                <button class="nav-item-btn" data-target="batch-section">
+                    <i class="bi bi-folder-check"></i>
+                    <span>Folder Batch Analysis</span>
+                    <span class="nav-badge">Batch</span>
+                </button>
+
+                <div class="nav-section-label mt-4">KNOWLEDGE & SYSTEM</div>
+                <button class="nav-item-btn" data-target="training-graphs-section">
+                    <i class="bi bi-graph-up-arrow"></i>
+                    <span>Training Curves</span>
+                    <span class="nav-badge highlight">50 Ep</span>
+                </button>
+                <button class="nav-item-btn" data-target="model-info-section">
+                    <i class="bi bi-cpu"></i>
+                    <span>EfficientNet-B0 + cGAN</span>
+                </button>
+                <button class="nav-item-btn" data-target="disease-guide-section">
+                    <i class="bi bi-journal-medical"></i>
+                    <span>Disease Field Guide</span>
+                </button>
+            </nav>
+
+            <!-- SYSTEM STATUS FOOTER -->
+            <div class="sidebar-footer">
+                <div class="system-status-card" id="systemStatusCard">
+                    <div class="status-indicator">
+                        <span class="status-pulse" id="backendPulse"></span>
+                        <span class="status-text fw-semibold" id="backendStatusText">Connecting...</span>
+                    </div>
+                    <div class="status-details text-muted mt-1" id="backendDeviceText">
+                        <i class="bi bi-hdd-network me-1"></i> Checking API
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Mobile Drawer Backdrop -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+        <!-- MAIN CONTENT AREA -->
+        <main class="app-main">
+            <!-- TOP NAVIGATION BAR -->
+            <header class="app-topbar sticky-top" id="appTopbar">
+                <div class="topbar-left">
+                    <button class="btn btn-icon d-lg-none me-2" id="openSidebarBtn" aria-label="Open Navigation">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                    <div class="page-title-group">
+                        <h1 class="page-title" id="pageTitle">Front-View Analysis (T1)</h1>
+                        <p class="page-caption text-muted d-none d-sm-block mb-0" id="pageCaption">
+                            Evaluate adaxial leaf surfaces via Siamese feature extraction
+                        </p>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="model-badge-chip" id="topbarModelChip">
+                        <i class="bi bi-shield-check text-success me-1" id="topbarModelIcon"></i>
+                        <span class="checkpoint-name d-none d-sm-inline"
+                            id="topbarModelName">best_dual_efficientnet_b0.onnx (WASM CPU)</span>
+                        <span class="model-badge-mobile-label d-inline d-sm-none fw-bold" id="topbarModelMobile">WASM CPU
+                            Active</span>
+                        <span
+                            class="badge bg-success-subtle text-success border border-success-subtle ms-1 d-none d-md-inline"
+                            id="topbarModelArch">EfficientNet-B0 + cGAN</span>
+                    </div>
+                    <button class="btn btn-outline-success btn-sm rounded-pill ms-2" id="checkApiBtn"
+                        title="Refresh Backend Connection & Model Status">
+                        <i class="bi bi-arrow-repeat me-1" id="refreshBtnIcon"></i> <span id="refreshBtnText"
+                            class="d-none d-sm-inline">Refresh</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- ALERT BANNER CONTAINER (FALLBACK) -->
+            <div class="container-fluid px-4 pt-1 d-none" id="globalAlertContainer"></div>
+
+            <!-- =================================================================== -->
+            <!-- SECTION 1: FRONT-VIEW ANALYSIS (T1) -->
+            <!-- =================================================================== -->
+            <section class="content-section active" id="front-view-section">
+                <div class="container-fluid px-4 py-3">
+                    <!-- SECTION-SPECIFIC ALERT BANNER -->
+                    <div class="section-alert-container" id="alertContainer-front-view-section"></div>
+
+                    <div class="row g-4 align-items-stretch">
+                        <!-- Upload & Controls Card -->
+                        <div class="col-lg-5">
+                            <div class="card card-premium h-100">
+                                <div class="card-header bg-white border-0 pt-4 pb-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="fw-bold mb-0 text-dark">
+                                            <i class="bi bi-cloud-arrow-up text-success me-2"></i>Upload Front View (T1)
+                                        </h5>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            Single Image Only
+                                        </span>
+                                    </div>
+                                    <p class="text-muted small mt-1 mb-0">Select exactly one front-view paddy leaf image
+                                        (JPG, PNG, WEBP).</p>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Single Image Upload Zone -->
+                                    <div class="dual-upload-card" id="frontDropzone" style="min-height: 250px;">
+                                        <input type="file" id="frontFileInput" accept="image/*" class="d-none">
+
+                                        <div class="dual-panel-header">
+                                            <span
+                                                class="badge bg-success-subtle text-success border border-success-subtle">
+                                                T1 • Front View (Adaxial)
+                                            </span>
+                                            <button class="btn btn-sm btn-link text-danger p-0 d-none"
+                                                id="removeFrontBtn" title="Remove image">
+                                                <i class="bi bi-trash3"></i>
+                                            </button>
+                                        </div>
+
+                                        <!-- Empty State Prompt -->
+                                        <div class="dual-drop-content" id="frontPrompt">
+                                            <div class="dropzone-icon mb-2">
+                                                <i class="bi bi-image text-success"></i>
+                                            </div>
+                                            <h6 class="fw-bold mt-2 mb-1">Drag and drop 1 front-view image here</h6>
+                                            <p class="text-muted text-xs mb-3">Accepts exactly one leaf image (JPG, PNG,
+                                                WEBP)</p>
+                                            <button type="button"
+                                                class="btn btn-outline-success btn-sm rounded-pill px-3"
+                                                onclick="document.getElementById('frontFileInput').click()">
+                                                <i class="bi bi-folder2-open me-1"></i> Select Front Image
+                                            </button>
+                                        </div>
+
+                                        <!-- Preview State (Single Image) -->
+                                        <div class="dual-preview-content d-none" id="frontPreviewBox">
+                                            <img id="frontImgPreview" src="" alt="T1 Front Preview"
+                                                class="img-fluid rounded shadow-sm"
+                                                style="max-height: 160px; object-fit: contain;">
+                                            <div class="preview-filename text-truncate fw-semibold mt-2"
+                                                id="frontFilenameText"></div>
+                                            <div class="text-xs text-muted" id="frontFilesizeText"></div>
+                                            <button type="button"
+                                                class="btn btn-outline-secondary btn-xs rounded-pill mt-2"
+                                                onclick="document.getElementById('frontFileInput').click()">
+                                                <i class="bi bi-arrow-repeat me-1"></i> Replace Image
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Action Button -->
+                                    <div class="mt-4 pt-2 border-top">
+                                        <button class="btn btn-success btn-lg w-100 fw-bold shadow-sm"
+                                            id="analyzeFrontBtn" disabled>
+                                            <span class="spinner-border spinner-border-sm me-2 d-none" id="frontSpinner"
+                                                role="status"></span>
+                                            <i class="bi bi-search me-1" id="frontSearchIcon"></i> Analyze Front View
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analysis Results Panel -->
+                        <div class="col-lg-7">
+                            <div class="card card-premium h-100">
+                                <div
+                                    class="card-header bg-white border-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="fw-bold mb-0 text-dark">
+                                            <i class="bi bi-clipboard2-pulse text-success me-2"></i>Analysis Result
+                                        </h5>
+                                        <p class="text-muted small mt-1 mb-0">Single highest-accuracy diagnosis from
+                                            trained model.</p>
+                                    </div>
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill" id="exportFrontCsvBtn"
+                                        style="display: none;">
+                                        <i class="bi bi-download me-1"></i> Export CSV
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Empty State Placeholder -->
+                                    <div class="empty-state-card" id="frontEmptyState">
+                                        <div class="empty-state-icon text-muted">
+                                            <i class="bi bi-card-image"></i>
+                                        </div>
+                                        <h6 class="fw-bold text-dark mt-3">No Prediction Yet</h6>
+                                        <p class="text-muted small max-w-sm mx-auto">
+                                            Upload one front-view paddy leaf image on the left and click <strong>Analyze
+                                                Front View</strong> to diagnose the disease with highest accuracy.
+                                        </p>
+                                    </div>
+
+                                    <!-- Error State for Invalid Image / Non-Paddy Leaf -->
+                                    <div id="frontErrorCard" style="display: none;">
+                                        <div class="error-hero-card mb-4" id="frontErrorHeroCard">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="error-icon-box me-3" id="frontErrorIconBox">
+                                                    <i class="bi bi-exclamation-triangle-fill" id="frontErrorIcon"></i>
+                                                </div>
+                                                <div>
+                                                    <span
+                                                        class="badge bg-warning-subtle text-warning border border-warning-subtle mb-1"
+                                                        id="frontErrorBadge">Validation Alert</span>
+                                                    <h4 class="fw-bold mb-0 text-dark" id="frontErrorTitle">Invalid
+                                                        Image Detected</h4>
+                                                </div>
+                                            </div>
+
+                                            <div class="error-message-banner mb-3" id="frontErrorMessage">
+                                                Invalid image: Please upload a paddy leaf image for disease detection.
+                                            </div>
+
+                                            <div class="error-guidance-box mb-3">
+                                                <h6 class="fw-bold small text-dark mb-2">
+                                                    <i class="bi bi-shield-exclamation text-warning me-1"></i>
+                                                    Diagnostic Requirements
+                                                </h6>
+                                                <ul class="text-muted small ps-3 mb-0" id="frontErrorGuidanceList">
+                                                    <li>This diagnostic platform is specifically calibrated for
+                                                        <strong>paddy (rice) leaves</strong>.
+                                                    </li>
+                                                    <li>Unrelated subjects (such as animals, vehicles, faces, buildings,
+                                                        or random graphics) are blocked to prevent false diagnoses.</li>
+                                                    <li>The image must clearly display a paddy leaf blade with natural
+                                                        foliar surface texture.</li>
+                                                </ul>
+                                            </div>
+
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <button type="button" class="btn btn-success btn-sm rounded-pill px-3"
+                                                    onclick="document.getElementById('frontFileInput').click()">
+                                                    <i class="bi bi-arrow-repeat me-1"></i> Upload Another Image
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Single Highest-Accuracy Diagnosis Card -->
+                                    <div id="frontResultCard" style="display: none;">
+                                        <div class="diagnosis-hero-card mb-4" id="frontHeroCard">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <span
+                                                        class="badge px-3 py-2 text-uppercase fw-bold letter-spacing-1 mb-2"
+                                                        id="frontSeverityBadge">Severity</span>
+                                                    <h3 class="fw-bold mb-1" id="frontDiseaseTitle">Disease Name</h3>
+                                                    <p class="text-muted small mb-0" id="frontPathogenText">Pathogen /
+                                                        Causative Agent</p>
+                                                </div>
+                                                <div class="confidence-circle text-end">
+                                                    <div class="confidence-val" id="frontConfidenceVal">0%</div>
+                                                    <div class="confidence-sub">Highest Accuracy</div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Leaf Image Showcase -->
+                                            <div class="row g-2 mt-3 pt-3 border-top">
+                                                <div class="col-12">
+                                                    <div class="showcase-thumb-box" style="height: 150px;">
+                                                        <span class="thumb-tag">T1 Front View (Analyzed)</span>
+                                                        <img id="frontShowcaseImg" src="" alt="Front View"
+                                                            class="img-fluid rounded">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Diagnostic Performance Metrics: Accuracy, Precision, Recall, F1-Score -->
+                                        <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                                            <h6 class="fw-bold small text-dark mb-3">
+                                                <i class="bi bi-speedometer2 text-success me-1"></i> Diagnostic
+                                                Performance Metrics
+                                            </h6>
+                                            <div class="metrics-quad-grid">
+                                                <div class="metric-quad-card">
+                                                    <div class="metric-quad-title">Accuracy</div>
+                                                    <div class="metric-quad-val text-success" id="frontAccuracyVal">
+                                                        88.4%</div>
+                                                    <div class="metric-quad-sub">Overall Correctness</div>
+                                                </div>
+                                                <div class="metric-quad-card">
+                                                    <div class="metric-quad-title">Precision</div>
+                                                    <div class="metric-quad-val text-primary" id="frontPrecisionVal">
+                                                        88.9%</div>
+                                                    <div class="metric-quad-sub">Positive Predictive</div>
+                                                </div>
+                                                <div class="metric-quad-card">
+                                                    <div class="metric-quad-title">Recall</div>
+                                                    <div class="metric-quad-val text-info" id="frontRecallVal">87.6%
+                                                    </div>
+                                                    <div class="metric-quad-sub">True Positive Rate</div>
+                                                </div>
+                                                <div class="metric-quad-card">
+                                                    <div class="metric-quad-title">F1-Score</div>
+                                                    <div class="metric-quad-val text-dark" id="frontF1Val">88.2%</div>
+                                                    <div class="metric-quad-sub">Harmonic Balance</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Single Highest Accuracy Class Confidence -->
+                                        <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                                            <h6 class="fw-bold small text-dark mb-3">Diagnosed Disease Confidence Score
+                                            </h6>
+                                            <div id="frontProbMeters"></div>
+                                        </div>
+
+                                        <!-- Agronomic Treatment Guide -->
+                                        <div class="card border-0 bg-success-subtle p-3 rounded-3">
+                                            <h6 class="fw-bold text-success mb-2">
+                                                <i class="bi bi-shield-plus me-1"></i> Agronomic Action & Care
+                                            </h6>
+                                            <div class="small text-dark mb-2" id="frontSymptomsText"></div>
+                                            <div class="small text-dark fw-semibold" id="frontManagementText"></div>
+                                        </div>
+
+                                        <!-- Latency & Mode Footer -->
+                                        <div
+                                            class="d-flex justify-content-between align-items-center mt-3 pt-2 text-muted small">
+                                            <span><i class="bi bi-cpu me-1"></i> Inferred in <strong
+                                                    id="frontLatency">0</strong> ms</span>
+                                            <span class="badge bg-white text-dark border">Siamese T1 Single-View
+                                                Fallback</span>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- SECTION 2: DUAL-VIEW ANALYSIS (T1 + D1) -->
+            <!-- =================================================================== -->
+            <section class="content-section" id="dual-view-section">
+                <div class="container-fluid px-4 py-3">
+                    <!-- SECTION-SPECIFIC ALERT BANNER -->
+                    <div class="section-alert-container" id="alertContainer-dual-view-section"></div>
+
+                    <div class="row g-4 align-items-stretch">
+                        <!-- Dual Upload Inputs Column -->
+                        <div class="col-lg-6">
+                            <div class="card card-premium h-100">
+                                <div class="card-header bg-white border-0 pt-4 pb-2">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h5 class="fw-bold mb-0 text-dark">
+                                            <i class="bi bi-camera me-2 text-success"></i>Upload Paired Views
+                                        </h5>
+                                    </div>
+                                    <p class="text-muted small mt-1 mb-0">Both views of the same physical leaf specimen
+                                        are strictly required.</p>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="row g-3">
+                                        <!-- T1 FRONT VIEW DROPZONE -->
+                                        <div class="col-sm-6">
+                                            <div class="dual-upload-card" id="dualFrontDropzone">
+                                                <input type="file" id="dualFrontInput" accept="image/*" class="d-none">
+                                                <div class="dual-panel-header">
+                                                    <span
+                                                        class="badge bg-success-subtle text-success border border-success-subtle">
+                                                        T1 • Front View
+                                                    </span>
+                                                    <button class="btn btn-sm btn-link text-danger p-0 d-none"
+                                                        id="removeDualFrontBtn" title="Remove image">
+                                                        <i class="bi bi-trash3"></i>
+                                                    </button>
+                                                </div>
+
+                                                <!-- Empty State -->
+                                                <div class="dual-drop-content" id="dualFrontPrompt">
+                                                    <i class="bi bi-card-heading text-muted fs-1 mb-2"></i>
+                                                    <div class="fw-semibold small">Front / Adaxial View</div>
+                                                    <p class="text-muted text-xs mb-2">Leaf upper surface</p>
+                                                    <button type="button"
+                                                        class="btn btn-outline-success btn-sm rounded-pill px-3"
+                                                        onclick="document.getElementById('dualFrontInput').click()">
+                                                        Select T1
+                                                    </button>
+                                                </div>
+
+                                                <!-- Preview State -->
+                                                <div class="dual-preview-content d-none" id="dualFrontPreviewBox">
+                                                    <img id="dualFrontImg" src="" alt="T1 Front Preview"
+                                                        class="img-fluid rounded">
+                                                    <div class="preview-filename text-truncate" id="dualFrontFilename">
+                                                    </div>
+                                                    <button type="button"
+                                                        class="btn btn-outline-secondary btn-xs rounded-pill mt-2"
+                                                        onclick="document.getElementById('dualFrontInput').click()">
+                                                        <i class="bi bi-arrow-repeat me-1"></i> Replace
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- D1 BACK VIEW DROPZONE -->
+                                        <div class="col-sm-6">
+                                            <div class="dual-upload-card" id="dualBackDropzone">
+                                                <input type="file" id="dualBackInput" accept="image/*" class="d-none">
+                                                <div class="dual-panel-header">
+                                                    <span
+                                                        class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                                                        B1 • Back View
+                                                    </span>
+                                                    <button class="btn btn-sm btn-link text-danger p-0 d-none"
+                                                        id="removeDualBackBtn" title="Remove image">
+                                                        <i class="bi bi-trash3"></i>
+                                                    </button>
+                                                </div>
+
+                                                <!-- Empty State -->
+                                                <div class="dual-drop-content" id="dualBackPrompt">
+                                                    <i class="bi bi-card-image text-muted fs-1 mb-2"></i>
+                                                    <div class="fw-semibold small">Back / Abaxial View</div>
+                                                    <p class="text-muted text-xs mb-2">Leaf lower surface</p>
+                                                    <button type="button"
+                                                        class="btn btn-outline-success btn-sm rounded-pill px-3"
+                                                        onclick="document.getElementById('dualBackInput').click()">
+                                                        Select B1
+                                                    </button>
+                                                </div>
+
+                                                <!-- Preview State -->
+                                                <div class="dual-preview-content d-none" id="dualBackPreviewBox">
+                                                    <img id="dualBackImg" src="" alt="D1 Back Preview"
+                                                        class="img-fluid rounded">
+                                                    <div class="preview-filename text-truncate" id="dualBackFilename">
+                                                    </div>
+                                                    <button type="button"
+                                                        class="btn btn-outline-secondary btn-xs rounded-pill mt-2"
+                                                        onclick="document.getElementById('dualBackInput').click()">
+                                                        <i class="bi bi-arrow-repeat me-1"></i> Replace
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Pair Readiness Checklist -->
+                                    <div
+                                        class="pair-status-bar mt-4 p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <span class="pair-dot me-2" id="pairCheckDot"></span>
+                                            <span class="small fw-semibold text-dark" id="pairCheckText">Upload both T1
+                                                and B1 images</span>
+                                        </div>
+                                        <span class="badge bg-light text-muted border" id="pairBadge">0/2 Ready</span>
+                                    </div>
+
+                                    <!-- Action Submit Button -->
+                                    <div class="mt-4">
+                                        <button class="btn btn-success btn-lg w-100 fw-bold shadow-sm"
+                                            id="analyzeDualBtn" disabled>
+                                            <span class="spinner-border spinner-border-sm me-2 d-none" id="dualSpinner"
+                                                role="status"></span>
+                                            <i class="bi bi-search me-1" id="dualSearchIcon"></i> Analyze Both Views (T1
+                                            + B1)
+                                        </button>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dual Results Column -->
+                        <div class="col-lg-6">
+                            <div class="card card-premium h-100">
+                                <div
+                                    class="card-header bg-white border-0 pt-4 pb-2 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="fw-bold mb-0 text-dark">
+                                            <i class="bi bi-check2-circle text-success me-2"></i>Dual-View Diagnosis
+                                        </h5>
+                                        <p class="text-muted small mt-1 mb-0">Concatenated Siamese feature prediction
+                                            (2560
+                                            dimensions).</p>
+                                    </div>
+                                    <button class="btn btn-outline-secondary btn-sm rounded-pill" id="exportDualCsvBtn"
+                                        style="display: none;">
+                                        <i class="bi bi-download me-1"></i> Export CSV
+                                    </button>
+                                </div>
+
+                                <div class="card-body">
+                                    <!-- Empty State -->
+                                    <div class="empty-state-card" id="dualEmptyState">
+                                        <div class="empty-state-icon text-muted">
+                                            <i class="bi bi-symmetry-horizontal"></i>
+                                        </div>
+                                        <h6 class="fw-bold text-dark mt-3">Ready for Paired Analysis</h6>
+                                        <p class="text-muted small max-w-sm mx-auto">
+                                            Upload both front (T1) and back (B1) views on the left and click
+                                            <strong>Analyze Both Views</strong> to view fused prediction.
+                                        </p>
+                                    </div>
+
+                                    <!-- Error State for Dual-View Invalid Image -->
+                                    <div id="dualErrorCard" style="display: none;">
+                                        <div class="error-hero-card mb-4" id="dualErrorHeroCard">
+                                            <div class="d-flex align-items-center mb-3">
+                                                <div class="error-icon-box me-3" id="dualErrorIconBox">
+                                                    <i class="bi bi-exclamation-triangle-fill" id="dualErrorIcon"></i>
+                                                </div>
+                                                <div>
+                                                    <span
+                                                        class="badge bg-warning-subtle text-warning border border-warning-subtle mb-1"
+                                                        id="dualErrorBadge">Validation Alert</span>
+                                                    <h4 class="fw-bold mb-0 text-dark" id="dualErrorTitle">Invalid Image
+                                                        Detected</h4>
+                                                </div>
+                                            </div>
+
+                                            <div class="error-message-banner mb-3" id="dualErrorMessage">
+                                                Invalid image: Please upload a paddy leaf image for disease detection.
+                                            </div>
+
+                                            <div class="error-guidance-box mb-3">
+                                                <h6 class="fw-bold small text-dark mb-2">
+                                                    <i class="bi bi-shield-exclamation text-warning me-1"></i> Dual-View
+                                                    Requirements
+                                                </h6>
+                                                <p class="text-muted small mb-0">
+                                                    Both the <strong>Front View (T1)</strong> and <strong>Back View
+                                                        (B1)</strong> must be valid paddy leaf images. Please replace
+                                                    any invalid image with an authentic paddy leaf photograph to perform
+                                                    Siamese fusion analysis.
+                                                </p>
+                                            </div>
+
+                                            <div class="d-flex flex-wrap gap-2">
+                                                <button type="button" class="btn btn-success btn-sm rounded-pill px-3"
+                                                    onclick="document.getElementById('dualFrontInput').click()">
+                                                    <i class="bi bi-arrow-repeat me-1"></i> Replace Front (T1)
+                                                </button>
+                                                <button type="button"
+                                                    class="btn btn-outline-success btn-sm rounded-pill px-3"
+                                                    onclick="document.getElementById('dualBackInput').click()">
+                                                    <i class="bi bi-arrow-repeat me-1"></i> Replace Back (B1)
+                                                </button>
+
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Result Display Card -->
+                                    <div id="dualResultCard" style="display: none;">
+                                        <div class="diagnosis-hero-card mb-4" id="dualHeroCard">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <span
+                                                        class="badge px-3 py-2 text-uppercase fw-bold letter-spacing-1 mb-2"
+                                                        id="dualSeverityBadge">Severity</span>
+                                                    <h3 class="fw-bold mb-1" id="dualDiseaseTitle">Disease Name</h3>
+                                                    <p class="text-muted small mb-0" id="dualPathogenText">Pathogen /
+                                                        Causative Agent</p>
+                                                </div>
+                                                <div class="confidence-circle text-end">
+                                                    <div class="confidence-val" id="dualConfidenceVal">0%</div>
+                                                    <div class="confidence-sub">Confidence</div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Side-by-Side Images Showcase -->
+                                            <div class="row g-2 mt-3 pt-3 border-top">
+                                                <div class="col-6">
+                                                    <div class="showcase-thumb-box">
+                                                        <span class="thumb-tag">T1 Front</span>
+                                                        <img id="dualShowcaseFrontImg" src="" alt="Front View"
+                                                            class="img-fluid rounded">
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <div class="showcase-thumb-box">
+                                                        <span class="thumb-tag">B1 Back</span>
+                                                        <img id="dualShowcaseBackImg" src="" alt="Back View"
+                                                            class="img-fluid rounded">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Diagnostic Performance Metrics: Accuracy, Precision, Recall, F1-Score -->
+                                        <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                                            <h6 class="fw-bold small text-dark mb-3">
+                                                <i class="bi bi-speedometer2 text-success me-1"></i> Diagnostic
+                                                Performance Metrics
+                                            </h6>
+                                            <div class="metrics-quad-grid">
+                                                <div class="metric-quad-card">
+                                                    <div class="metric-quad-title">Accuracy</div>
+                                                    <div class="metric-quad-val text-success" id="dualAccuracyVal">94.2%
+                                                    </div>
+                                                    <div class="metric-quad-sub">Overall Correctness</div>
+                                                </div>
+                                                <div class="metric-quad-card">
+                                                    <div class="metric-quad-title">Precision</div>
+                                                    <div class="metric-quad-val text-primary" id="dualPrecisionVal">
+                                                        94.6%</div>
+                                                    <div class="metric-quad-sub">Positive Predictive</div>
+                                                </div>
+                                                <div class="metric-quad-card">
+                                                    <div class="metric-quad-title">Recall</div>
+                                                    <div class="metric-quad-val text-info" id="dualRecallVal">93.8%
+                                                    </div>
+                                                    <div class="metric-quad-sub">True Positive Rate</div>
+                                                </div>
+                                                <div class="metric-quad-card">
+                                                    <div class="metric-quad-title">F1-Score</div>
+                                                    <div class="metric-quad-val text-dark" id="dualF1Val">94.2%</div>
+                                                    <div class="metric-quad-sub">Harmonic Balance</div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Single Highest Accuracy Class Confidence -->
+                                        <div class="card border-0 bg-light p-3 mb-4 rounded-3">
+                                            <h6 class="fw-bold small text-dark mb-3">Diagnosed Disease Confidence Score
+                                            </h6>
+                                            <div id="dualProbMeters"></div>
+                                        </div>
+
+                                        <!-- Agronomic Treatment Guide -->
+                                        <div class="card border-0 bg-success-subtle p-3 rounded-3">
+                                            <h6 class="fw-bold text-success mb-2">
+                                                <i class="bi bi-shield-plus me-1"></i> Agronomic Action & Treatment
+                                            </h6>
+                                            <div class="small text-dark mb-2" id="dualSymptomsText"></div>
+                                            <div class="small text-dark fw-semibold" id="dualManagementText"></div>
+                                        </div>
+
+                                        <!-- Latency & Mode Footer -->
+                                        <div
+                                            class="d-flex justify-content-between align-items-center mt-3 pt-2 text-muted small">
+                                            <span><i class="bi bi-cpu me-1"></i> Inferred in <strong
+                                                    id="dualLatency">0</strong> ms</span>
+                                            <span class="badge bg-white text-dark border">Siamese 2560D Fusion</span>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- SECTION 3: FOLDER-BASED BATCH ANALYSIS -->
+            <!-- =================================================================== -->
+            <section class="content-section" id="batch-section">
+                <div class="container-fluid px-4 py-3">
+                    <!-- SECTION-SPECIFIC ALERT BANNER -->
+                    <div class="section-alert-container" id="alertContainer-batch-section"></div>
+
+                    <div class="row g-4">
+                        <!-- Batch Configuration Column -->
+                        <div class="col-12">
+                            <div class="card card-premium">
+                                <div class="card-header bg-white border-0 pt-4 pb-2">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                        <div>
+                                            <h5 class="fw-bold mb-0 text-dark">
+                                                <i class="bi bi-folder-check text-success me-2"></i>Folder Batch
+                                                Analysis
+                                            </h5>
+                                            <p class="text-muted small mt-1 mb-0">
+                                                Upload an entire dataset folder. Files are automatically matched into T1
+                                                and B1 pairs using actual dataset naming conventions.
+                                            </p>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-body">
+                                    <div class="row g-3 align-items-center">
+                                        <!-- Folder / Multi-file Pickers -->
+                                        <div class="col-md-5">
+                                            <div class="upload-dropzone p-3" id="batchDropzone">
+                                                <!-- Folder Picker -->
+                                                <input type="file" id="batchFolderInput" webkitdirectory directory
+                                                    multiple class="d-none">
+                                                <!-- Fallback Multi-file Picker -->
+                                                <input type="file" id="batchFilesInput" multiple accept="image/*"
+                                                    class="d-none">
+
+                                                <div class="text-center">
+                                                    <i class="bi bi-folder2-open text-success fs-2 mb-2"></i>
+                                                    <h6 class="fw-bold mb-1">Select Folder or Multiple Images</h6>
+                                                    <div class="d-flex justify-content-center gap-2 mt-2">
+                                                        <button type="button"
+                                                            class="btn btn-success btn-sm rounded-pill px-3"
+                                                            onclick="document.getElementById('batchFolderInput').click()">
+                                                            <i class="bi bi-folder-symlink me-1"></i> Upload Folder
+                                                        </button>
+                                                        <button type="button"
+                                                            class="btn btn-outline-secondary btn-sm rounded-pill px-3"
+                                                            onclick="document.getElementById('batchFilesInput').click()">
+                                                            <i class="bi bi-images me-1"></i> Select Files
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Processing Mode & Controls -->
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-bold text-dark">Analysis Mode
+                                                Strategy:</label>
+                                            <select class="form-select form-select-sm mb-3" id="batchModeSelect">
+                                                <option value="auto" selected>Strict Dual-View Only (Requires T1 + B1)
+                                                </option>
+                                                <option value="front">Single / Top-View Only </option>
+                                            </select>
+                                            <div class="small text-muted" id="batchModeHint">
+                                                Dual-View Mode: Automatically pairs T1 &amp; B1 images for complete
+                                                Dual-View Siamese fusion.
+                                            </div>
+                                        </div>
+
+                                        <!-- Staging Summary & Action Button -->
+                                        <div class="col-md-3 border-start-md">
+                                            <div class="mb-2">
+                                                <div class="text-muted small">Loaded in Staging:</div>
+                                                <h4 class="fw-bold text-dark mb-0" id="batchStagedTotal">0 files</h4>
+
+                                            </div>
+                                            <button class="btn btn-success w-100 fw-bold shadow-sm" id="runBatchBtn"
+                                                disabled>
+                                                <span class="spinner-border spinner-border-sm me-2 d-none"
+                                                    id="batchSpinner" role="status"></span>
+                                                <i class="bi bi-play-fill me-1" id="batchPlayIcon"></i> Run Batch
+                                                Analysis
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Real-time Processing Progress Bar -->
+                                    <div class="mt-4" id="batchProgressWrapper" style="display: none;">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="small fw-semibold text-dark" id="batchProgressText">Processing
+                                                batch...</span>
+                                            <span class="small fw-bold text-success" id="batchProgressPct">0%</span>
+                                        </div>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                                id="batchProgressBar" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Batch Results Section (Summary Cards, Chart, Table) -->
+                        <div class="col-12" id="batchResultsWrapper" style="display: none;">
+                            <!-- Overall Batch Validation Performance: Accuracy, Precision, Recall, F1-Score -->
+                            <div class="card card-premium p-3 mb-3 border-0 bg-white shadow-2xs">
+                                <div
+                                    class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                                    <div>
+                                        <h6 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                                            <i class="bi bi-patch-check-fill text-success fs-5"></i> Overall Batch
+                                            Performance Metrics
+                                        </h6>
+                                        <span class="text-muted small">Aggregate model evaluation metrics calculated
+                                            across all validated specimens in this batch</span>
+                                    </div>
+                                    <span
+                                        class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1 fw-semibold">
+                                        <i class="bi bi-cpu me-1"></i> Dual-View Siamese + cGAN Model
+                                    </span>
+                                </div>
+                                <div class="row row-cols-2 row-cols-md-4 g-2 g-md-3">
+                                    <div class="col">
+                                        <div class="summary-metric-card h-100 border-start border-4 border-success">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <div class="metric-label text-success mb-0">Overall Accuracy</div>
+                                                <i class="bi bi-bullseye text-success"></i>
+                                            </div>
+                                            <div class="metric-value text-success" id="metricBatchAccuracy">0%</div>
+                                            <div class="metric-sub text-muted">Batch Diagnostic Accuracy</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="summary-metric-card h-100 border-start border-4 border-primary">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <div class="metric-label text-primary mb-0">Overall Precision</div>
+                                                <i class="bi bi-crosshair text-primary"></i>
+                                            </div>
+                                            <div class="metric-value text-primary" id="metricBatchPrecision">0%</div>
+                                            <div class="metric-sub text-muted">Positive Predictive Value</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="summary-metric-card h-100 border-start border-4 border-info">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <div class="metric-label text-info mb-0">Overall Recall</div>
+                                                <i class="bi bi-arrow-repeat text-info"></i>
+                                            </div>
+                                            <div class="metric-value text-info" id="metricBatchRecall">0%</div>
+                                            <div class="metric-sub text-muted">True Positive Sensitivity</div>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="summary-metric-card h-100 border-start border-4 border-dark">
+                                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                                <div class="metric-label text-dark mb-0">Overall F1-Score</div>
+                                                <i class="bi bi-trophy text-dark"></i>
+                                            </div>
+                                            <div class="metric-value text-dark" id="metricBatchF1">0%</div>
+                                            <div class="metric-sub text-muted">Harmonic Mean Balance</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Summary Metrics Cards (2 cols mobile, 3 cols tablet, 6 cols desktop) -->
+                            <div class="row row-cols-2 row-cols-sm-3 row-cols-xl-6 g-2 g-md-3 mb-4">
+                                <div class="col">
+                                    <div class="summary-metric-card h-100">
+                                        <div class="metric-label">Total Samples</div>
+                                        <div class="metric-value text-dark" id="metricTotal">0</div>
+                                        <div class="metric-sub" id="metricTotalFiles">0 images</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="summary-metric-card h-100">
+                                        <div class="metric-label">Healthy Leaves</div>
+                                        <div class="metric-value text-success" id="metricHealthy">0</div>
+                                        <div class="metric-sub text-success fw-semibold" id="metricHealthyPct">0%</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="summary-metric-card h-100">
+                                        <div class="metric-label">Diseased Leaves</div>
+                                        <div class="metric-value text-danger" id="metricDiseased">0</div>
+                                        <div class="metric-sub text-danger fw-semibold" id="metricDiseasedPct">0%</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="summary-metric-card h-100">
+                                        <div class="metric-label">Unmatched</div>
+                                        <div class="metric-value text-warning" id="metricUnmatched">0</div>
+                                        <div class="metric-sub text-muted">Pairs incomplete</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="summary-metric-card h-100">
+                                        <div class="metric-label">Errors</div>
+                                        <div class="metric-value text-secondary" id="metricErrors">0</div>
+                                        <div class="metric-sub text-muted">Failed read</div>
+                                    </div>
+                                </div>
+                                <div class="col">
+                                    <div class="summary-metric-card h-100">
+                                        <div class="metric-label">Avg. Confidence</div>
+                                        <div class="metric-value text-primary" id="metricAvgConfidence">0%</div>
+                                        <div class="metric-sub text-muted">Successful runs</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Disease Distribution Chart & Breakdown -->
+                            <div class="row g-4 mb-4">
+                                <div class="col-lg-6">
+                                    <div class="card card-premium h-100 p-3">
+                                        <h6 class="fw-bold text-dark mb-3">
+                                            <i class="bi bi-pie-chart text-success me-2"></i>Predicted Disease
+                                            Distribution
+                                        </h6>
+                                        <div class="chart-container" style="position: relative; height: 260px;">
+                                            <canvas id="diseaseChartCanvas"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="card card-premium h-100 p-3">
+                                        <h6 class="fw-bold text-dark mb-3">
+                                            <i class="bi bi-bar-chart-steps text-success me-2"></i>Class Breakdown
+                                            Metrics
+                                        </h6>
+                                        <div id="batchClassBreakdown"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Interactive Results Table with Filters & Search -->
+                            <div class="card card-premium">
+                                <div class="card-header bg-white border-0 pt-4 pb-2">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                        <div>
+                                            <h5 class="fw-bold mb-0 text-dark">
+                                                <i class="bi bi-table text-success me-2"></i>Detailed Batch Predictions
+                                            </h5>
+                                            <span class="text-muted small">Showing results from actual model
+                                                predictions.</span>
+                                        </div>
+
+                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                            <!-- Search input -->
+                                            <div class="input-group input-group-sm batch-search-input-group">
+                                                <span class="input-group-text bg-white"><i
+                                                        class="bi bi-search"></i></span>
+                                                <input type="text" class="form-control" placeholder="Search ID..."
+                                                    id="tableSearchInput">
+                                            </div>
+
+                                            <!-- Filter Buttons -->
+                                            <div class="btn-group btn-group-sm" role="group" id="filterButtonGroup">
+                                                <button type="button" class="btn btn-outline-success active"
+                                                    data-filter="all">All</button>
+                                                <button type="button" class="btn btn-outline-success"
+                                                    data-filter="Healthy Paddy">Healthy</button>
+                                                <button type="button" class="btn btn-outline-success"
+                                                    data-filter="Brown spot">Brown Spot</button>
+                                                <button type="button" class="btn btn-outline-success"
+                                                    data-filter="Hispa">Hispa</button>
+                                                <button type="button" class="btn btn-outline-success"
+                                                    data-filter="Leaf Blast">Leaf Blast</button>
+                                                <button type="button" class="btn btn-outline-secondary"
+                                                    data-filter="unmatched">Unmatched</button>
+                                            </div>
+
+                                            <!-- Export CSV -->
+                                            <button class="btn btn-success btn-sm rounded-pill fw-semibold"
+                                                id="exportBatchCsvBtn">
+                                                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Export CSV
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle mb-0 custom-table"
+                                            id="batchResultsTable">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Sample ID</th>
+                                                    <th>Sample File(s)</th>
+                                                    <th>Analysis Mode</th>
+                                                    <th>Predicted Disease</th>
+                                                    <th>Confidence</th>
+                                                    <th>Status</th>
+                                                    <th class="text-end">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="batchTableBody"></tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- SECTION 4: TRAINING & EVALUATION CURVES -->
+            <!-- =================================================================== -->
+            <section class="content-section" id="training-graphs-section">
+                <div class="container-fluid px-4 py-3">
+                    <!-- SECTION-SPECIFIC ALERT BANNER -->
+                    <div class="section-alert-container" id="alertContainer-training-graphs-section"></div>
+
+                    <!-- Section Banner & Action Controls -->
+                    <div class="card card-premium p-4 mb-4">
+                        <div
+                            class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                    <span
+                                        class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                        <i class="bi bi-graph-up me-1"></i> Empirical Model Performance
+                                    </span>
+                                    <span
+                                        class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">
+                                        50 Epochs Siamese Optimization
+                                    </span>
+                                    <span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1">
+                                        <i class="bi bi-magic me-1"></i> cGAN Data Augmentation
+                                    </span>
+                                </div>
+                                <h4 class="fw-bold text-dark mb-1">Dual-View EfficientNet-B0 + cGAN Training Dynamics
+                                </h4>
+                                <p class="text-muted small mb-0">
+                                    Quantitative convergence profiles across 50 epochs illustrating training accuracy,
+                                    validation accuracy, testing generalization, and cross-entropy loss descent.
+                                </p>
+                            </div>
+
+                            <!-- Action Controls -->
+                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                <button type="button"
+                                    class="btn btn-outline-success btn-sm px-3 rounded-pill shadow-2xs"
+                                    id="replayGraphAnimBtn">
+                                    <i class="bi bi-play-circle-fill me-1"></i> Re-animate Curves
+                                </button>
+                                <div class="btn-group rounded-pill p-1 bg-light border" role="group"
+                                    aria-label="Graph View Mode">
+                                    <button type="button" class="btn btn-sm rounded-pill btn-success px-3 active"
+                                        id="btnViewInteractive">
+                                        <i class="bi bi-activity me-1"></i> Interactive
+                                    </button>
+                                    <button type="button" class="btn btn-sm rounded-pill btn-light px-3 text-secondary"
+                                        id="btnViewMatplotlib">
+                                        <i class="bi bi-file-earmark-image me-1"></i> Publication Plots
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Highlight KPI Stats Row (Training Accuracy, Validation Accuracy, Testing Accuracy, F1-Score) -->
+                    <div class="row g-2 g-md-3 mb-4">
+                        <!-- Training Accuracy Card -->
+                        <div class="col-6 col-lg-3">
+                            <div class="card card-premium p-3 h-100 border-start border-4 border-primary shadow-sm">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="text-muted text-xs text-uppercase fw-semibold"
+                                            style="letter-spacing: 0.05em;">Training Accuracy</span>
+                                        <h3 class="fw-bold text-primary my-1" id="statTrainAccuracy">95.3%</h3>
+                                        <div class="text-xs text-muted">50-Epoch training convergence</div>
+                                    </div>
+                                    <div class="p-2 rounded-3 bg-primary-subtle text-primary">
+                                        <i class="bi bi-graph-up fs-4"></i>
+                                    </div>
+                                </div>
+                                <div
+                                    class="mt-2 pt-2 border-top d-flex align-items-center justify-content-between text-xs">
+                                    <span class="text-muted">Peak Train Fit</span>
+                                    <span class="badge bg-primary-subtle text-primary">95.3%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Validation Accuracy Card -->
+                        <div class="col-6 col-lg-3">
+                            <div class="card card-premium p-3 h-100 border-start border-4 border-warning shadow-sm">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="text-muted text-xs text-uppercase fw-semibold"
+                                            style="letter-spacing: 0.05em;">Validation Accuracy</span>
+                                        <h3 class="fw-bold text-warning my-1" id="statValAccuracy">93.2%</h3>
+                                        <div class="text-xs text-muted">Cross-validation split metric</div>
+                                    </div>
+                                    <div class="p-2 rounded-3 bg-warning-subtle text-warning">
+                                        <i class="bi bi-patch-check fs-4"></i>
+                                    </div>
+                                </div>
+                                <div
+                                    class="mt-2 pt-2 border-top d-flex align-items-center justify-content-between text-xs">
+                                    <span class="text-muted">Peak Validation</span>
+                                    <span class="badge bg-warning-subtle text-warning">94.1%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Testing Accuracy Card -->
+                        <div class="col-6 col-lg-3">
+                            <div class="card card-premium p-3 h-100 border-start border-4 border-success shadow-sm">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="text-muted text-xs text-uppercase fw-semibold"
+                                            style="letter-spacing: 0.05em;">Testing Accuracy</span>
+                                        <h3 class="fw-bold text-success my-1" id="statTestAccuracy">94.2%</h3>
+                                        <div class="text-xs text-muted">Test generalization accuracy</div>
+                                    </div>
+                                    <div class="p-2 rounded-3 bg-success-subtle text-success">
+                                        <i class="bi bi-shield-check fs-4"></i>
+                                    </div>
+                                </div>
+                                <div
+                                    class="mt-2 pt-2 border-top d-flex align-items-center justify-content-between text-xs">
+                                    <span class="text-muted">Unseen Test Set</span>
+                                    <span class="badge bg-success-subtle text-success">94.2%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Training Loss Card -->
+                        <div class="col-6 col-lg-3">
+                            <div class="card card-premium p-3 h-100 border-start border-4 border-danger shadow-sm">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <span class="text-muted text-xs text-uppercase fw-semibold"
+                                            style="letter-spacing: 0.05em;">Training Loss</span>
+                                        <h3 class="fw-bold text-danger my-1" id="statTrainLoss">0.147</h3>
+                                        <div class="text-xs text-muted">50-Epoch cross-entropy loss</div>
+                                    </div>
+                                    <div class="p-2 rounded-3 bg-danger-subtle text-danger">
+                                        <i class="bi bi-graph-down fs-4"></i>
+                                    </div>
+                                </div>
+                                <div
+                                    class="mt-2 pt-2 border-top d-flex align-items-center justify-content-between text-xs">
+                                    <span class="text-muted">Final Convergence</span>
+                                    <span class="badge bg-danger-subtle text-danger">0.147</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Live Graph Synthesis Animation Status Bar -->
+                    <div class="card card-premium p-3 mb-4 bg-white border d-flex flex-row align-items-center justify-content-between shadow-2xs flex-wrap gap-2"
+                        id="curveDrawStatusBar">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="spinner-grow spinner-grow-sm text-success" id="curveDrawSpinner" role="status">
+                            </div>
+                            <span class="fw-semibold small text-dark" id="curveDrawStatusText">Ready to animate
+                                curves...</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-light text-muted border font-monospace" id="curveEpochCounter">Epoch:
+                                0 / 50</span>
+                            <button class="btn btn-link btn-sm text-success p-0 fw-semibold text-decoration-none"
+                                id="btnSkipCurveAnim">Skip to End</button>
+                        </div>
+                    </div>
+
+                    <!-- VIEW A: Interactive Animated Charts Container -->
+                    <div id="interactiveCurvesView">
+                        <div class="row g-4">
+                            <!-- Accuracy Curve Card -->
+                            <div class="col-xl-6">
+                                <div class="card card-premium p-4 h-100 shadow-sm border">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                                        <div>
+                                            <h5 class="fw-bold text-dark mb-1">
+                                                <i class="bi bi-graph-up text-primary me-2"></i>Dual-View
+                                                EfficientNet-B0: Accuracy Curve
+                                            </h5>
+                                            <span class="text-muted text-xs">Epochs 1 &ndash; 50 &bull; Accuracy (%) vs
+                                                Epoch</span>
+                                        </div>
+                                        <div class="d-flex gap-1 flex-wrap">
+                                            <span
+                                                class="badge bg-primary-subtle text-primary border border-primary-subtle text-xs">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 8px;"></i> Train:
+                                                94.0%
+                                            </span>
+                                            <span
+                                                class="badge bg-warning-subtle text-warning border border-warning-subtle text-xs">
+                                                <i class="bi bi-square-fill me-1" style="font-size: 8px;"></i>
+                                                Validation: 93.2%
+                                            </span>
+                                            <span
+                                                class="badge bg-success-subtle text-success border border-success-subtle text-xs">
+                                                <i class="bi bi-triangle-fill me-1" style="font-size: 8px;"></i>
+                                                Testing: 94.2%
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Chart Canvas -->
+                                    <div class="chart-container"
+                                        style="position: relative; height: 380px; width: 100%;">
+                                        <canvas id="accuracyChartCanvas"></canvas>
+                                    </div>
+
+                                    <!-- Curve Metrics Breakdown -->
+                                    <div class="row g-2 mt-3 pt-3 border-top text-center text-xs">
+                                        <div class="col-4 curve-breakdown-col border-end">
+                                            <div class="text-muted">Initial (Epoch 1)</div>
+                                            <div class="fw-bold text-dark mt-1">Train 53.9% &bull; Val 78.4% &bull; Test
+                                                75.2%</div>
+                                        </div>
+                                        <div class="col-4 curve-breakdown-col border-end">
+                                            <div class="text-muted">Convergence (Epoch 30)</div>
+                                            <div class="fw-bold text-primary mt-1">Train 94.1% &bull; Val 93.2% &bull;
+                                                Test 93.9%</div>
+                                        </div>
+                                        <div class="col-4 curve-breakdown-col">
+                                            <div class="text-muted">Final Convergence (Epoch 50)</div>
+                                            <div class="fw-bold text-success mt-1">Train 94.0% &bull; Val 93.2% &bull;
+                                                Test 94.2%</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Loss Curve Card -->
+                            <div class="col-xl-6">
+                                <div class="card card-premium p-4 h-100 shadow-sm border">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                                        <div>
+                                            <h5 class="fw-bold text-dark mb-1">
+                                                <i class="bi bi-graph-down text-danger me-2"></i>Dual-View
+                                                EfficientNet-B0: Loss Curve
+                                            </h5>
+                                            <span class="text-muted text-xs">Epochs 1 &ndash; 50 &bull; Cross-Entropy
+                                                Loss vs Epoch</span>
+                                        </div>
+                                        <div class="d-flex gap-1 flex-wrap">
+                                            <span
+                                                class="badge bg-danger-subtle text-danger border border-danger-subtle text-xs">
+                                                <i class="bi bi-circle-fill me-1" style="font-size: 8px;"></i> Train
+                                                Loss
+                                            </span>
+                                            <span
+                                                class="badge bg-success-subtle text-success border border-success-subtle text-xs">
+                                                <i class="bi bi-square-fill me-1" style="font-size: 8px;"></i>
+                                                Validation Loss
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Chart Canvas -->
+                                    <div class="chart-container"
+                                        style="position: relative; height: 380px; width: 100%;">
+                                        <canvas id="lossChartCanvas"></canvas>
+                                    </div>
+
+                                    <!-- Curve Metrics Breakdown -->
+                                    <div class="row g-2 mt-3 pt-3 border-top text-center text-xs">
+                                        <div class="col-4 curve-breakdown-col border-end">
+                                            <div class="text-muted">Initial (Epoch 1)</div>
+                                            <div class="fw-bold text-dark mt-1">Train 1.080 &bull; Val 0.651</div>
+                                        </div>
+                                        <div class="col-4 curve-breakdown-col border-end">
+                                            <div class="text-muted">Convergence (Epoch 30)</div>
+                                            <div class="fw-bold text-danger mt-1">Train 0.166 &bull; Val 0.148</div>
+                                        </div>
+                                        <div class="col-4 curve-breakdown-col">
+                                            <div class="text-muted">Optimal Loss (Epoch 50)</div>
+                                            <div class="fw-bold text-success mt-1">Train 0.147 &bull; Val 0.133</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW B: High-Resolution Matplotlib Publication Plots (Toggled via button) -->
+                    <div id="matplotlibPlotsView" class="d-none">
+                        <div class="row g-4">
+                            <!-- Accuracy Plot -->
+                            <div class="col-lg-6">
+                                <div class="card card-premium p-4 h-100 shadow-sm border">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <h5 class="fw-bold text-dark mb-0">Dual-View EfficientNet-B0: Accuracy Curve
+                                            </h5>
+                                            <small class="text-muted">Original High-Resolution Matplotlib Figure</small>
+                                        </div>
+                                        <a href="assets/accuracy_curve.png"
+                                            download="DualView_EfficientNetB0_AccuracyCurve.png"
+                                            class="btn btn-outline-primary btn-sm rounded-pill shadow-2xs">
+                                            <i class="bi bi-download me-1"></i> Download PNG
+                                        </a>
+                                    </div>
+                                    <div class="text-center bg-light rounded-3 p-2 border">
+                                        <img src="assets/accuracy_curve.png"
+                                            alt="Dual-View EfficientNet-B0 Accuracy Curve"
+                                            class="img-fluid rounded shadow-2xs"
+                                            style="max-height: 480px; width: 100%; object-fit: contain;">
+                                    </div>
+                                    <div class="mt-3 text-xs text-muted">
+                                        <i class="bi bi-info-circle me-1 text-primary"></i>
+                                        Features blue circular markers for Train Accuracy (53.9% &rarr; 95.8%) and
+                                        orange square markers for Validation Accuracy (78.4% &rarr; 94.4%).
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Loss Plot -->
+                            <div class="col-lg-6">
+                                <div class="card card-premium p-4 h-100 shadow-sm border">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <h5 class="fw-bold text-dark mb-0">Dual-View EfficientNet-B0: Loss Curve
+                                            </h5>
+                                            <small class="text-muted">Original High-Resolution Matplotlib Figure</small>
+                                        </div>
+                                        <a href="assets/loss_curve.png" download="DualView_EfficientNetB0_LossCurve.png"
+                                            class="btn btn-outline-danger btn-sm rounded-pill shadow-2xs">
+                                            <i class="bi bi-download me-1"></i> Download PNG
+                                        </a>
+                                    </div>
+                                    <div class="text-center bg-light rounded-3 p-2 border">
+                                        <img src="assets/loss_curve.png" alt="Dual-View EfficientNet-B0 Loss Curve"
+                                            class="img-fluid rounded shadow-2xs"
+                                            style="max-height: 480px; width: 100%; object-fit: contain;">
+                                    </div>
+                                    <div class="mt-3 text-xs text-muted">
+                                        <i class="bi bi-info-circle me-1 text-danger"></i>
+                                        Features red circular markers for Train Loss (1.08 &rarr; 0.147) and green
+                                        square markers for Validation Loss (0.651 &rarr; 0.133).
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Academic & Analytical Explanation Card -->
+                    <div class="card card-premium p-4 mt-4 bg-light border-0">
+                        <h5 class="fw-bold text-dark mb-3">
+                            <i class="bi bi-journal-check text-success me-2"></i>Performance Analysis &amp; Experimental
+                            Findings
+                        </h5>
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="p-3 bg-white rounded-3 border h-100 shadow-2xs">
+                                    <div class="fw-bold text-dark small mb-1">
+                                        <i class="bi bi-check2-circle text-success me-1"></i> Testing vs. Validation
+                                        Alignment
+                                    </div>
+                                    <p class="text-muted text-xs mb-0">
+                                        The Siamese model delivers <strong>94.2% Testing Accuracy</strong> on held-out
+                                        test paddy leaves, aligning with the <strong>94.4% Peak Validation
+                                            Accuracy</strong>. This minimal 0.2% generalization gap demonstrates that
+                                        the model generalizes robustly to real-world field images without overfitting.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-white rounded-3 border h-100 shadow-2xs">
+                                    <div class="fw-bold text-dark small mb-1">
+                                        <i class="bi bi-magic text-warning me-1"></i> cGAN Data Augmentation Role
+                                    </div>
+                                    <p class="text-muted text-xs mb-0">
+                                        Conditional GAN (cGAN) synthesized realistic synthetic lesion patterns for minor
+                                        pathology classes, balancing the training distribution. This prevents class
+                                        imbalance collapse and stabilizes validation loss descent.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-white rounded-3 border h-100 shadow-2xs">
+                                    <div class="fw-bold text-dark small mb-1">
+                                        <i class="bi bi-layers-half text-primary me-1"></i> Dual-Stream Siamese Fusion
+                                    </div>
+                                    <p class="text-muted text-xs mb-0">
+                                        Shared weights between top-view (T1) and bottom-view (D1) EfficientNet-B0
+                                        streams produce a rich 2560D fused feature vector, enabling fast convergence
+                                        around Epoch 28 and achieving minimum cross-entropy loss at 0.133.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- SECTION 5: MODEL ARCHITECTURE & SPECS -->
+            <!-- =================================================================== -->
+            <section class="content-section" id="model-info-section">
+                <div class="container-fluid px-4 py-3">
+                    <!-- SECTION-SPECIFIC ALERT BANNER -->
+                    <div class="section-alert-container" id="alertContainer-model-info-section"></div>
+                    <div class="row g-4">
+                        <div class="col-lg-8">
+                            <div class="card card-premium p-4">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-1">
+                                    <h4 class="fw-bold text-dark mb-0">
+                                        <i class="bi bi-cpu text-success me-2"></i>Trained Model Architecture:
+                                        EfficientNet-B0 + cGAN
+                                    </h4>
+                                    <span
+                                        class="badge bg-success-subtle text-success border border-success-subtle px-3 py-1">
+                                        <i class="bi bi-stars me-1"></i>cGAN Augmented Training
+                                    </span>
+                                </div>
+                                <p class="text-muted small mb-4">
+                                    Hybrid architecture combining Conditional Generative Adversarial Network (cGAN)
+                                    dataset synthesis with a Dual-Stream Siamese EfficientNet-B0 backbone.
+                                </p>
+
+                                <!-- STAGE 1: cGAN Conditional Synthesis Pipeline -->
+                                <div class="card bg-light border-0 p-3 mb-4 rounded-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                            <i class="bi bi-magic me-1"></i> Stage 1: Conditional GAN (cGAN) Data
+                                            Augmentation
+                                        </span>
+                                        <span class="text-xs text-muted fw-semibold">Class-Conditioned Generator G(z |
+                                            y) &amp; Discriminator D(x | y)</span>
+                                    </div>
+                                    <div class="row g-2 text-center align-items-center">
+                                        <div class="col-md-3">
+                                            <div class="p-2 bg-white rounded border shadow-2xs h-100">
+                                                <small class="text-muted text-xs d-block">Conditioning Vector</small>
+                                                <strong class="text-dark small">Noise (z) + Class (y)</strong>
+                                                <div class="text-xs text-success mt-1">4 Disease Labels</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-1 d-none d-md-block">
+                                            <i class="bi bi-arrow-right text-success fs-5"></i>
+                                        </div>
+                                        <div class="d-md-none col-12 text-center my-1">
+                                            <i class="bi bi-arrow-down text-success fs-5"></i>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="p-2 bg-white rounded border shadow-2xs h-100">
+                                                <small class="text-muted text-xs d-block">Adversarial Synthesis</small>
+                                                <strong class="text-success small">cGAN Generator &amp;
+                                                    Discriminator</strong>
+                                                <div class="text-xs text-muted mt-1">Balances Minor Pathology Classes
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-1 d-none d-md-block">
+                                            <i class="bi bi-arrow-right text-success fs-5"></i>
+                                        </div>
+                                        <div class="d-md-none col-12 text-center my-1">
+                                            <i class="bi bi-arrow-down text-success fs-5"></i>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="p-2 bg-white rounded border shadow-2xs h-100">
+                                                <small class="text-muted text-xs d-block">Augmented Training
+                                                    Data</small>
+                                                <strong class="text-dark small">Real + Synthetic Leaves</strong>
+                                                <div class="text-xs text-primary mt-1">Dual-View (T1 + D1)</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- STAGE 2: Dual-Stream Siamese EfficientNet-B0 Classifier -->
+                                <div class="architecture-diagram p-3 bg-light rounded-3 mb-4">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                                            <i class="bi bi-layers-half me-1"></i> Stage 2: Dual-Stream Siamese
+                                            EfficientNet-B0 Feature Extractor
+                                        </span>
+                                        <span class="text-xs text-muted fw-semibold">Trained on cGAN-Augmented
+                                            Pathology</span>
+                                    </div>
+                                    <div class="row text-center g-3">
+                                        <div class="col-md-5">
+                                            <div class="p-3 bg-white shadow-sm rounded-3 border">
+                                                <span class="badge bg-success-subtle text-success mb-2">Stream 1: Top
+                                                    View (T1)</span>
+                                                <h6 class="fw-bold mb-1">EfficientNet-B0</h6>
+                                                <small class="text-muted">Feature Extractor: 1280 dims</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 d-flex align-items-center justify-content-center">
+                                            <div class="fusion-symbol">
+                                                <i class="bi bi-plus-circle-fill text-success fs-3"></i>
+                                                <div class="text-xs fw-bold text-muted mt-1">CONCAT</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-5">
+                                            <div class="p-3 bg-white shadow-sm rounded-3 border">
+                                                <span class="badge bg-secondary-subtle text-secondary mb-2">Stream 2:
+                                                    Bottom View (D1)</span>
+                                                <h6 class="fw-bold mb-1">EfficientNet-B0</h6>
+                                                <small class="text-muted">Shared Siamese Weights: 1280 dims</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="text-center my-3">
+                                        <i class="bi bi-arrow-down fs-4 text-success"></i>
+                                    </div>
+
+                                    <div class="p-3 bg-white shadow-sm rounded-3 border text-center">
+                                        <span class="badge bg-primary-subtle text-primary mb-2">Fused Classifier
+                                            Head</span>
+                                        <h6 class="fw-bold mb-1">Linear (2560 &rarr; 512) &bull; BatchNorm1d &bull; SiLU
+                                            &bull; Dropout (0.3) &bull; Linear (512 &rarr; 4)</h6>
+                                        <small class="text-muted">Softmax Output: 4 Target Disease Classes</small>
+                                    </div>
+                                </div>
+
+
+
+                                <!-- Technical Specification Cards -->
+                                <div class="row g-2 g-md-3">
+                                    <div class="col-6 col-md-4">
+                                        <div class="border rounded p-3 h-100 bg-white">
+                                            <span class="text-muted small">Checkpoint Filename</span>
+                                            <h6 class="fw-bold text-dark mt-1 mb-0" id="infoCheckpoint">
+                                                best_dual_efficientnet_b0.pth</h6>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="border rounded p-3 h-100 bg-white">
+                                            <span class="text-muted small">Model Architecture</span>
+                                            <h6 class="fw-bold text-success mt-1 mb-0">EfficientNet-B0 + cGAN</h6>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="border rounded p-3 h-100 bg-white">
+                                            <span class="text-muted small">GAN Augmentation</span>
+                                            <h6 class="fw-bold text-dark mt-1 mb-0">Conditional GAN (cGAN)</h6>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="border rounded p-3 h-100 bg-white">
+                                            <span class="text-muted small">Input Resolution</span>
+                                            <h6 class="fw-bold text-dark mt-1 mb-0" id="infoResolution">224 x 224 RGB
+                                                (ImageNet Norm)</h6>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="border rounded p-3 h-100 bg-white">
+                                            <span class="text-muted small">Total Parameters</span>
+                                            <h6 class="fw-bold text-dark mt-1 mb-0" id="infoParams">5,321,856</h6>
+                                        </div>
+                                    </div>
+                                    <div class="col-6 col-md-4">
+                                        <div class="border rounded p-3 h-100 bg-white">
+                                            <span class="text-muted small">Execution Hardware</span>
+                                            <h6 class="fw-bold text-dark mt-1 mb-0" id="infoHardware">PyTorch CPU / CUDA
+                                            </h6>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card card-premium p-4 h-100">
+                                <h5 class="fw-bold text-dark mb-3">Model Verification &amp; Features</h5>
+                                <ul class="list-unstyled mb-0">
+                                    <li class="d-flex align-items-center mb-3">
+                                        <i class="bi bi-stars text-success fs-5 me-2"></i>
+                                        <div>
+                                            <div class="fw-semibold small">cGAN-Augmented Training</div>
+                                            <div class="text-muted text-xs">Conditional GAN synthesized training data to
+                                                balance rare disease classes</div>
+                                        </div>
+                                    </li>
+                                    <li class="d-flex align-items-center mb-3">
+                                        <i class="bi bi-layers-half text-success fs-5 me-2"></i>
+                                        <div>
+                                            <div class="fw-semibold small">Dual-Stream Siamese</div>
+                                            <div class="text-muted text-xs">Exact 2560D concatenation head from dual
+                                                EfficientNet-B0 streams</div>
+                                        </div>
+                                    </li>
+                                    <li class="d-flex align-items-center mb-3">
+                                        <i class="bi bi-check-circle-fill text-success fs-5 me-2"></i>
+                                        <div>
+                                            <div class="fw-semibold small">Zero Retraining Required</div>
+                                            <div class="text-muted text-xs">Direct weight load from checkpoint
+                                                best_dual_efficientnet_b0.pth</div>
+                                        </div>
+                                    </li>
+                                    <li class="d-flex align-items-center mb-3">
+                                        <i class="bi bi-eye text-success fs-5 me-2"></i>
+                                        <div>
+                                            <div class="fw-semibold small">Native Front-Only Support</div>
+                                            <div class="text-muted text-xs">Verified author Siamese single-view fallback
+                                                projection</div>
+                                        </div>
+                                    </li>
+                                    <li class="d-flex align-items-center">
+                                        <i class="bi bi-lightning-charge text-success fs-5 me-2"></i>
+                                        <div>
+                                            <div class="fw-semibold small">Authentic Inference</div>
+                                            <div class="text-muted text-xs">Real PyTorch evaluation on actual model
+                                                weights without simulation</div>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- =================================================================== -->
+            <!-- SECTION 5: DISEASE FIELD GUIDE -->
+            <!-- =================================================================== -->
+            <section class="content-section" id="disease-guide-section">
+                <div class="container-fluid px-4 py-3">
+                    <!-- SECTION-SPECIFIC ALERT BANNER -->
+                    <div class="section-alert-container" id="alertContainer-disease-guide-section"></div>
+                    <div class="row g-4" id="diseaseGuideCards"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- DETAIL MODAL FOR TABLE ROWS -->
+    <div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" id="detailModalLabel">Sample Diagnostic Breakdown</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="detailModalBody">
+                    <!-- Populated dynamically via JS -->
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-secondary rounded-pill btn-sm"
+                        data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts: ONNX Runtime Web (WASM CPU), Bootstrap, Chart.js, Custom Logic -->
+    <script src="js/ort/ort.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/ort.min.js';"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/script.js"></script>
+</body>
+
+</html>
